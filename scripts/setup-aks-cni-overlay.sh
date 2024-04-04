@@ -4,8 +4,6 @@
 RESOURCE_GROUP="AksNetDemo"
 AKS_CLUSTER_NAME="AksCniOverlay"
 LOCATION="eastus"
-APP_NAME="nginx-deployment"
-SERVICE_NAME="nginx-service"
 
 # Function to create a resource group
 create_resource_group() {
@@ -33,24 +31,10 @@ get_kubectl_credentials() {
     az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER_NAME
 }
 
-# Function to deploy a sample application
-deploy_sample_application() {
-    echo "Deploying sample application..."
-    kubectl create deployment $APP_NAME --image=nginx
-    kubectl expose deployment $SERVICE_NAME --port=80 --type=LoadBalancer
-}
-
-# Function to display pod IP addresses
-show_pod_ips() {
-    echo "Pod IP addresses:"
-    kubectl get pods -o wide
-}
 
 # Main script execution
 create_resource_group
 create_aks_cluster
 get_kubectl_credentials
-deploy_sample_application
-show_pod_ips
 
 echo "Script execution completed."
