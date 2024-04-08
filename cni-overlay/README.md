@@ -1,8 +1,8 @@
-# AKS Networking Demos
+# CNI Overlay Demo
 
 ## Introduction
 
-This repository demonstrates deploying an Azure Kubernetes Service (AKS) cluster using the Azure Container Networking Interface (CNI) in Overlay mode. It features a sample Nginx app deployment, a network policy to manage access within the cluster, and a test deployment to illustrate network policy enforcement. This demo aims to provide insights into scalable and efficient network management capabilities in a Kubernetes environment on Azure. Overtime, this repository will be expanded to include more networking features and best practices.
+This demonstrates deploying an Azure Kubernetes Service (AKS) cluster using the Azure Container Networking Interface (CNI) in Overlay mode. It features a script to create an AKS cluster with the CNI Overlay plugin, sample Nginx app deployment, a Service to expose it, and walkthrough to verify IP assignment.
 
 ## Prerequisites
 
@@ -10,28 +10,14 @@ This repository demonstrates deploying an Azure Kubernetes Service (AKS) cluster
 - `kubectl` installed
 - An active Azure subscription
 
-## Repository Structure
-
-```
-/
-|-- cnioverlay/
-|   |-- deployment.yaml                 # Nginx deployment
-|   |-- service.yaml                    # Service to expose Nginx
-|   |-- networkpolicy.yaml              # Network policy for Nginx access control
-|   `-- frontend-test-deployment.yaml   # Test Deployment to demonstrate network policy enforcement
-|-- scripts/
-|   `-- setup-aks-cni-overlay.sh        # Script to setup AKS with Azure CNI Overlay
-|-- README.md
-```
-
 ## Getting Started
 
 ### 1. Setup AKS Cluster
 
-Execute the `setup-aks-cni-overlay.sh` script in the `scripts/` directory to create your AKS cluster with Azure CNI Overlay.
+Execute the `setup-aks-cni-overlay.sh` script to create your AKS cluster with Azure CNI Overlay.
 
 ```bash
-./scripts/setup-aks-cni-overlay.sh
+./setup-aks-cni-overlay.sh
 ```
 
 ### 2. Deploy Sample App
@@ -39,7 +25,7 @@ Execute the `setup-aks-cni-overlay.sh` script in the `scripts/` directory to cre
 Deploy the Nginx application:
 
 ```bash
-kubectl apply -f cnioverlay/deployment.yaml
+kubectl apply -f deployment.yaml
 ```
 
 ### 3. Expose the App
@@ -47,7 +33,7 @@ kubectl apply -f cnioverlay/deployment.yaml
 Expose Nginx using:
 
 ```bash
-kubectl apply -f cnioverlay/service.yaml
+kubectl apply -f service.yaml
 ```
 
 ### 4. Verify IP Address ranges, assignments, and connectivity
