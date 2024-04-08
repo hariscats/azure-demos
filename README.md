@@ -79,6 +79,17 @@ Select Deployment and then fetch each containers logs:
 kubectl get pods -l app=<deployment-name> -n <namespace> --no-headers=true | awk '{print $1}' | xargs -I {} kubectl logs {} -n <namespace>
 ```
 
+---
+**NOTE**
+
+In this AKS cluster deployed with Azure CNI in Overlay mode, it's important to note that certain system-level components, specifically some kube-system pods such as kube-proxy, do not receive an IP address from the Azure CNI overlay podCidr. This is due to their **hostNetwork** property being set to true, meaning they share the host's network namespace and consequently, its IP address. In most cases, this doesn't affect workloads but here's the implications in case your situation is different.
+* Network Policies: These pods will not be affected by network policies targeting pod IP addresses, as they operate outside the pod-specific network space.
+* Security: Direct access to the host network may introduce security considerations that need to be addressed differently compared to regular pods.
+* Monitoring and Logging: Monitoring tools and logging configurations may require adjustments since network traffic from these pods will appear to originate from the host IP.
+* Pod Communications: Services that rely on pod-to-pod communication via the overlay network may not interact with these host-network pods in the expected manner.
+
+---
+
 ### 5. Optional - Apply Network Policy
 
 Before applying the network policy, ensure that the `NetworkPolicy` resource is enabled in the AKS cluster. This can be done by setting the `networkPolicy` field to `azure` in the `networkProfile` section of the AKS cluster configuration.
