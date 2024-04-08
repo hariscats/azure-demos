@@ -73,6 +73,12 @@ Verify connectivity to the Nginx service using the following command:
 kubectl run -it --rm --restart=Never busybox --image=busybox -- wget -qO- http://<nginx-service-ip>
 ```
 
+Select Deployment and then fetch each containers logs:
+
+```bash
+kubectl get pods -l app=<deployment-name> -n <namespace> --no-headers=true | awk '{print $1}' | xargs -I {} kubectl logs {} -n <namespace>
+```
+
 ### 5. Optional - Apply Network Policy
 
 Before applying the network policy, ensure that the `NetworkPolicy` resource is enabled in the AKS cluster. This can be done by setting the `networkPolicy` field to `azure` in the `networkProfile` section of the AKS cluster configuration.
