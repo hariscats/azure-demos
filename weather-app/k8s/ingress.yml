@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myflaskapp-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/weather
+        pathType: Prefix
+        backend:
+          service:
+            name: myflaskapp-service
+            port:
+              number: 5000
+      - path: /api/forecast
+        pathType: Prefix
+        backend:
+          service:
+            name: myflaskapp-service
+            port:
+              number: 5000
+      - path: /api/weather-air-quality
+        pathType: Prefix
+        backend:
+          service:
+            name: myflaskapp-service
+            port:
+              number: 5000
