@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myflaskapp-deployment
+  name: weatherapp-deployment
 spec:
   replicas: 2
   selector:
@@ -14,15 +14,26 @@ spec:
     spec:
       containers:
       - name: myflaskapp
-        image: <your-acr-name>.azurecr.io/myflaskapp:latest
+        image: myacrl2ol3tonyesic.azurecr.io/weather-app:1.0
         ports:
         - containerPort: 5000
+        volumeMounts:
+        - name: secrets-store-inline
+          mountPath: "/mnt/secrets"
+          readOnly: true
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "my-keyvault-secrets"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myflaskapp-service
+  name: weatherapp-service
 spec:
   type: ClusterIP
   ports:
