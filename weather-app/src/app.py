@@ -7,10 +7,8 @@ from opencage.geocoder import OpenCageGeocode
 app = Flask(__name__)
 
 # Fetch and validate API keys from environment variables
-openweather_api_key = os.getenv('OPENWEATHER_API_KEY')
-opencage_api_key = os.getenv('OPENCAGE_API_KEY')
-if not openweather_api_key or not opencage_api_key:
-    raise EnvironmentError("API keys not set. Please ensure OPENWEATHER_API_KEY and OPENCAGE_API_KEY are configured.")
+openweather_api_key = open('/mnt/secrets/openweatherApiKey', 'r').read()
+opencage_api_key = open('/mnt/secrets/opencageApiKey', 'r').read()
 
 # Initialize the geocoder with the OpenCage API key
 geocoder = OpenCageGeocode(opencage_api_key)
