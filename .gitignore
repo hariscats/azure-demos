@@ -109,7 +109,6 @@ venv.bak/
 .mypy_cache/
 
 # VS Code settings
-.vscode/
 
 # Executable scripts
 *.sh
@@ -121,3 +120,9 @@ venv.bak/
 *.tmp
 *.temp
 *.swp
+
+# Azurite files
+__azurite*
+
+# VS Code files
+.vscode
