@@ -1,2 +1,2 @@
 # azure-demos
-This repo contains demos illustrating different scenarios and functionalities of Azure's cloud services. It will contain concrete examples to guide users through setting up and utilizing Azure features. 🛠️☁️
+This repo has demos and practical examples that illustrate different functionalities and scenarios of Azure's cloud services, aimed at enhancing my personal understanding and skills in using Azure features and customer scenarios. 🛠️☁️
