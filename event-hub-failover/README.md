@@ -1,7 +1,7 @@
 # EventHubFailoverAutomation.py
 
 ## Overview
-`EventHubFailoverAutomation.py` is a Python script designed to automate the failover process between a primary and a secondary Azure Event Hub namespace. It ensures high availability by attempting to send messages to the primary Event Hub and switching to the secondary Event Hub in case of failure.
+`failover.py` is a Python script designed to automate the failover process between a primary and a secondary Azure Event Hub namespace. It ensures high availability by attempting to send messages to the primary Event Hub and switching to the secondary Event Hub in case of failure. This is for demo purposes.
 
 ## Prerequisites
 - Python 3.x
@@ -24,7 +24,7 @@
 ## Usage
 Run the script:
 ```bash
-python EventHubFailoverAutomation.py
+python failover.py
 ```
 
 The script will attempt to send an event to the primary Event Hub and will switch to the secondary Event Hub if the primary is unavailable.
