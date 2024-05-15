@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "functions-data-processor", "functions-data-processor", "{06B45F3E-4A99-4D18-895D-4C71159A031F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "src", "functions-data-processor\src\src.csproj", "{798919E9-F984-4040-80EF-90B1F29961D2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{798919E9-F984-4040-80EF-90B1F29961D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{798919E9-F984-4040-80EF-90B1F29961D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{798919E9-F984-4040-80EF-90B1F29961D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{798919E9-F984-4040-80EF-90B1F29961D2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{798919E9-F984-4040-80EF-90B1F29961D2} = {06B45F3E-4A99-4D18-895D-4C71159A031F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {50035F17-2D1A-48A1-BB63-6D4EE28BD122}
+	EndGlobalSection
+EndGlobal
