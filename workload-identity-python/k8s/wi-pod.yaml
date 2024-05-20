@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wi-kv-test
+  namespace: default
+  labels:
+    azure.workload.identity/use: "true"  
+spec:
+  serviceAccountName: wi-demo-sa
+  containers:
+    - image: ${ACR_NAME}.azurecr.io/wi-kv-test
+      imagePullPolicy: Always
+      name: wi-kv-test
+      env:
+      - name: KEY_VAULT_NAME
+        value: ${KEY_VAULT_NAME}
+      - name: SECRET_NAME
+        value: Secret     
+  nodeSelector:
+    kubernetes.io/os: linux
