@@ -54,3 +54,39 @@ This repository contains a walkthrough to set up an AKS cluster with Workload Id
    az keyvault set-policy --name $KEY_VAULT_NAME --secret-permissions get --spn "${USER_ASSIGNED_CLIENT_ID}"
    ```
 
+### Deployment
+
+1. **Create `Dockerfile`:**
+   ```dockerfile
+   FROM python:3.7
+
+   ENV PYTHONUNBUFFERED=1
+
+   RUN mkdir /app
+   WORKDIR /app
+   ADD kv_secrets.py /app/
+   RUN pip install azure-identity azure-keyvault-secrets
+
+   CMD ["python", "/app/kv_secrets.py"]
+   ```
+
+2. **Build and Deploy:**
+
+   **Build the Image:**
+   ```bash
+   az acr create -g $RG -n $ACR_NAME --sku Standard
+   az acr build -t wi-kv-test -r $ACR_NAME .
+   az aks update -g $RG -n $CLUSTER_NAME --attach-acr $ACR_NAME
+   ```
+Substitute the ACR and Key Vault names in the `k8s/deployment.yaml` file and then apply the deployment.
+
+   **Deploy the Pod:**
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+
+   kubectl logs -f wi-kv-test
+   ```
+
+### Conclusion
+
+You now have a working pod that uses a Kubernetes Service Account federated to an Azure Managed Identity to access an Azure KV Secret.
