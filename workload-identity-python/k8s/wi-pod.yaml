@@ -8,12 +8,12 @@ metadata:
 spec:
   serviceAccountName: wi-demo-sa
   containers:
-    - image: ${ACR_NAME}.azurecr.io/wi-kv-test
+    - image: ENTER_ACR_NAME.azurecr.io/wi-kv-test
       imagePullPolicy: Always
       name: wi-kv-test
       env:
       - name: KEY_VAULT_NAME
-        value: ${KEY_VAULT_NAME}
+        value: ENTER_KV_NAME
       - name: SECRET_NAME
         value: Secret     
   nodeSelector:
