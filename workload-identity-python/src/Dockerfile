@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM --platform=linux/amd64 python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1
 
@@ -7,4 +7,4 @@ WORKDIR /app
 ADD secrets.py /app/
 RUN pip install azure-identity azure-keyvault-secrets
 
-CMD ["python", "/app/kv_secrets.py"]
+CMD ["python", "/app/secrets.py"]
