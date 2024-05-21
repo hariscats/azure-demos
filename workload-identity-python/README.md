@@ -125,7 +125,7 @@ while True:
 Create a new Dockerfile with the following:
 
 ```bash
-FROM python:3.7
+FROM --platform=linux/amd64 python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1
 
