@@ -8,13 +8,13 @@ metadata:
 spec:
   serviceAccountName: wi-demo-sa
   containers:
-    - image: ENTER_ACR_NAME.azurecr.io/wi-kv-test
+    - image: ENTER_ACR_NAME.azurecr.io/wi-kv-test:1.0
       imagePullPolicy: Always
       name: wi-kv-test
       env:
       - name: KEY_VAULT_NAME
         value: ENTER_KV_NAME
       - name: SECRET_NAME
-        value: Secret     
+        value: ENTER_KV_VALUE     
   nodeSelector:
     kubernetes.io/os: linux

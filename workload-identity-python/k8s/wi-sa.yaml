@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   annotations:
-    azure.workload.identity/client-id: "ENTER_USER_ASSIGNED_CLIENT_ID"
+    azure.workload.identity/client-id: ENTER_USER_ASSIGNED_MI
   labels:
     azure.workload.identity/use: "true"
   name: wi-demo-sa
