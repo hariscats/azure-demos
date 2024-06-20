@@ -1,10 +1,10 @@
 # Define variables for the first Helm installation
-$NAMESPACE1 = "arc-systems"
+$NAMESPACE1 = "gh-arc-demo"
 $HELM_RELEASE1 = "arc"
 $HELM_CHART1_URL = "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller"
 
 # Define variables for the second Helm installation
-$NAMESPACE2 = "arc-runners"
+$NAMESPACE2 = "gh-arc-runners-demo"
 $INSTALLATION_NAME = "arc-runner-set"
 $GITHUB_CONFIG_URL = "https://github.com/hariscats/azure-demos"  # Replace with your GitHub repository URL
 $HELM_CHART2_URL = "oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set"
