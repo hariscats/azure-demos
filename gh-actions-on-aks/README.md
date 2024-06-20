@@ -1,7 +1,3 @@
-Certainly! Below is a README file for the PowerShell script to install GitHub Actions on Azure Kubernetes Service (AKS).
-
----
-
 # Install GitHub Actions Runner Controller on AKS
 
 This PowerShell script installs the GitHub Actions Runner Controller on Azure Kubernetes Service (AKS). The script creates the necessary namespaces, configures the GitHub Actions Runner, and verifies the deployment.
