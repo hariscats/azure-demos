@@ -35,7 +35,7 @@ usage() {
 
 _on_exit() {
   local status=$?
-  if [[ $status -ne 0 && "$(basename "$0")" == "deploy.sh" ]]; then
+  if [[ $status -ne 0 && "${_AZURE_CHANGES_STARTED:-0}" == 1 && "$(basename "$0")" == "deploy.sh" ]]; then
     warn "Deployment did not finish. It's safe to re-run ./deploy.sh, or remove everything with ./destroy.sh."
   fi
 }
@@ -102,6 +102,7 @@ register_providers() {
 # When re-deploying into an existing group, its region is reused unless LOCATION is set.
 ensure_resource_group() {
   local existing
+  _AZURE_CHANGES_STARTED=1
   existing="$(az group show --name "$RESOURCE_GROUP" --query location --output tsv 2>/dev/null || true)"
   if [[ -n "$existing" ]]; then
     [[ -n "$LOCATION_OVERRIDE" ]] || LOCATION="$existing"
