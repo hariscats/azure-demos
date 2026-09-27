@@ -1,9 +1,10 @@
+# Placeholders in ${...} form are filled in by deploy.sh.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  annotations:
-    azure.workload.identity/client-id: ENTER_USER_ASSIGNED_MI
-  labels:
-    azure.workload.identity/use: "true"
   name: wi-demo-sa
   namespace: default
+  annotations:
+    # Client ID of the user-assigned managed identity that trusts (is federated
+    # with) this service account.
+    azure.workload.identity/client-id: "${IDENTITY_CLIENT_ID}"

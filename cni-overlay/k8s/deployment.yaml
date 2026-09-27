@@ -1,0 +1,57 @@
+# nginx answers every request with the name and overlay IP of the pod that served it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /dev/stderr notice;
+    events {
+      worker_connections 1024;
+    }
+    http {
+      access_log /dev/stdout;
+      server {
+        listen 80;
+        default_type text/plain;
+        location / {
+          return 200 "Hello from pod $hostname (pod IP $server_addr)\n";
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: mcr.microsoft.com/azurelinux/base/nginx:1.28
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: nginx-config

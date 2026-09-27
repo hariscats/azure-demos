@@ -1,69 +1,70 @@
-# CNI Overlay Demo
+# Azure CNI Overlay on AKS
 
-## Introduction
+An Azure Kubernetes Service (AKS) cluster that uses [Azure CNI Overlay](https://learn.microsoft.com/azure/aks/azure-cni-overlay)
+networking, with a sample nginx app behind a public load balancer. The deploy script shows where each kind of
+IP address comes from:
 
-This demonstrates deploying an Azure Kubernetes Service (AKS) cluster using the Azure Container Networking Interface (CNI) in Overlay mode. It features a script to create an AKS cluster with the CNI Overlay plugin, sample Nginx app deployment, a Service to expose it, and walkthrough to verify IP assignment.
+| Component | IP range | Source |
+| --- | --- | --- |
+| Nodes | `10.224.0.0/16` (default subnet of the AKS-managed VNet) | Virtual network |
+| Pods | `192.168.0.0/16` (`podCidr`) | Private overlay; uses no VNet addresses |
+| Services | `10.0.0.0/16` (`serviceCidr`) | Kubernetes cluster IPs |
 
-## Prerequisites
+Pods reach Azure resources and the internet by using the node's IP (SNAT). Because pods don't use VNet addresses,
+you can run many more pods with a small subnet than with flat Azure CNI.
 
-- Azure CLI installed and configured
-- `kubectl` installed
-- An active Azure subscription
-
-## Getting Started
-
-### 1. Setup AKS Cluster
-
-Execute the `setup-aks-cni-overlay.sh` script to create your AKS cluster with Azure CNI Overlay.
-
-```bash
-./setup-aks-cni-overlay.sh
-```
-
-### 2. Deploy Sample App
-
-Deploy the Nginx application:
+## Quick start
 
 ```bash
-kubectl apply -f deployment.yaml
+./deploy.sh    # ~8 minutes. Creates rg-cni-overlay, a 2-node cluster, and the nginx app.
+./destroy.sh   # Deletes the resource group and removes the kubectl context.
 ```
 
-### 3. Expose the App
+You need the Azure CLI (signed in with `az login`) and `kubectl`. [Azure Cloud Shell](https://shell.azure.com)
+has both. Override the defaults with `LOCATION`, `RESOURCE_GROUP` or `NODE_VM_SIZE`. To change the CIDRs, edit the
+parameters in [`infra/main.bicep`](infra/main.bicep).
 
-Expose Nginx using:
+## What gets deployed
+
+- [`infra/main.bicep`](infra/main.bicep): an AKS cluster (Free tier, 2 nodes) with `networkPlugin: azure`,
+  `networkPluginMode: overlay`, and explicit pod, service and DNS CIDRs.
+- [`k8s/deployment.yaml`](k8s/deployment.yaml): nginx with 3 replicas. Each replica answers with its pod name and
+  pod IP, so you can see which overlay address served a request.
+- [`k8s/service.yaml`](k8s/service.yaml): a `LoadBalancer` service that exposes nginx on a public IP.
+
+## Explore
 
 ```bash
-kubectl apply -f service.yaml
+# Call the app a few times. Each answer comes from a pod IP in 192.168.0.0/16.
+curl http://$(kubectl get service nginx-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Nodes, pods, services and endpoints with their IPs
+kubectl get nodes,pods,services,endpointslices -o wide
+
+# The cluster's network configuration
+az aks show -g rg-cni-overlay -n aks-cni-overlay --query networkProfile
+
+# The AKS-managed virtual network lives in the node resource group
+az network vnet list -g "$(az aks show -g rg-cni-overlay -n aks-cni-overlay --query nodeResourceGroup -o tsv)" -o table
+
+# Pod-to-service traffic inside the cluster (over the overlay network)
+kubectl run nettest --rm -it --restart=Never --image=mcr.microsoft.com/azurelinux/busybox:1.36 \
+  --command -- busybox wget -qO- http://nginx-service
+
+# Logs from every nginx replica
+kubectl logs -l app=nginx --prefix
+
+# kube-system pods with hostNetwork: true share the node's IP (see the note below)
+kubectl get pods -n kube-system -o custom-columns='POD:.metadata.name,IP:.status.podIP,HOST-NETWORK:.spec.hostNetwork'
 ```
 
-### 4. Verify IP Address ranges, assignments, and connectivity
-
-Check AKS and network configuration:
+## Clean up
 
 ```bash
-az aks list -o table
-az network vnet list -o table
-az network vnet subnet list --resource-group <resource-group-name> --vnet-name <vnet-name> -o table
-az aks show --resource-group <resource-group-name> --name <cluster-name> --query networkProfile.podCidr --output table
+./destroy.sh   # Asks for confirmation. Use --yes to skip the prompt.
 ```
 
-Verify the IP address assignments using the following command:
-
-```bash
-kubectl get no,po,svc,ep -o wide 
-```
-
-Verify connectivity to the Nginx service using the following command:
-
-```bash
-kubectl run -it --rm --restart=Never busybox --image=busybox -- wget -qO- http://<nginx-service-ip>
-```
-
-Select Deployment and then fetch each containers logs:
-
-```bash
-kubectl get pods -l app=<deployment-name> -n <namespace> --no-headers=true | awk '{print $1}' | xargs -I {} kubectl logs {} -n <namespace>
-```
+`destroy.sh` deletes only the resource group that `deploy.sh` created (tagged `azure-demos=cni-overlay`).
 
 ---
 **NOTE**
