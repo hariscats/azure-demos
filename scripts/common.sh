@@ -239,29 +239,30 @@ confirm_destroy() {
 # (Cognitive Services) accounts so a re-deploy can reuse their names, and removes
 # the kubectl contexts of the deleted AKS clusters.
 destroy_resource_group() {
-  local clusters vaults accounts name loc
-  clusters="$(az aks list --resource-group "$RESOURCE_GROUP" --query "[].name" --output tsv)"
-  vaults="$(az keyvault list --resource-group "$RESOURCE_GROUP" --resource-type vault \
-    --query "[].name" --output tsv)"
-  accounts="$(az cognitiveservices account list --resource-group "$RESOURCE_GROUP" \
-    --query "[].[name, location]" --output tsv)"
+  local resources type name loc
+  resources="$(az resource list --resource-group "$RESOURCE_GROUP" \
+    --query "[].[type, name, location]" --output tsv)"
 
   info "Deleting resource group '$RESOURCE_GROUP' (this usually takes 5-15 minutes)..."
   az group delete --name "$RESOURCE_GROUP" --yes --output none
 
-  for name in $vaults; do
-    info "Purging soft-deleted Key Vault '$name'..."
-    az keyvault purge --name "$name" --output none || warn "Couldn't purge Key Vault '$name'."
-  done
-  while IFS=$'\t' read -r name loc; do
-    [[ -n "$name" ]] || continue
-    info "Purging soft-deleted Azure AI account '$name'..."
-    az cognitiveservices account purge --name "$name" --resource-group "$RESOURCE_GROUP" \
-      --location "$loc" --output none || warn "Couldn't purge account '$name'."
-  done <<<"$accounts"
-  for name in $clusters; do
-    remove_kube_context "$name"
-  done
+  while IFS=$'\t' read -r type name loc; do
+    case "$(printf '%s' "$type" | tr '[:upper:]' '[:lower:]')" in
+      microsoft.keyvault/vaults)
+        info "Purging soft-deleted Key Vault '$name'..."
+        az keyvault purge --name "$name" --location "$loc" --output none ||
+          warn "Couldn't purge Key Vault '$name'."
+        ;;
+      microsoft.cognitiveservices/accounts)
+        info "Purging soft-deleted Azure AI account '$name'..."
+        az cognitiveservices account purge --name "$name" --resource-group "$RESOURCE_GROUP" \
+          --location "$loc" --output none || warn "Couldn't purge account '$name'."
+        ;;
+      microsoft.containerservice/managedclusters)
+        remove_kube_context "$name"
+        ;;
+    esac
+  done <<<"$resources"
   info "Deleted resource group '$RESOURCE_GROUP'."
 }
 
