@@ -1,20 +1,32 @@
+# Placeholders in ${...} form are filled in by deploy.sh.
 apiVersion: v1
 kind: Pod
 metadata:
   name: wi-kv-test
   namespace: default
   labels:
-    azure.workload.identity/use: "true"  
+    # Tells the workload identity webhook to inject the federated token and AZURE_* variables.
+    azure.workload.identity/use: "true"
 spec:
   serviceAccountName: wi-demo-sa
   containers:
-    - image: ENTER_ACR_NAME.azurecr.io/wi-kv-test:1.0
+    - name: wi-kv-test
+      image: "${IMAGE}"
       imagePullPolicy: Always
-      name: wi-kv-test
       env:
-      - name: KEY_VAULT_NAME
-        value: ENTER_KV_NAME
-      - name: SECRET_NAME
-        value: ENTER_KV_VALUE     
+        - name: KEY_VAULT_URL
+          value: "${KEY_VAULT_URL}"
+        - name: SECRET_NAME
+          value: "${SECRET_NAME}"
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 256Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
   nodeSelector:
     kubernetes.io/os: linux
