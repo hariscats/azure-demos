@@ -1,61 +1,53 @@
-# Reproduce AKS #5743 on one NVMe node
+# AKS NVMe readahead in Azure Government
 
-From this directory, run the following in an authorized Azure test subscription. The disk test needs Bash, Azure CLI, kubectl, curl, jq and shasum. The two files in this directory are sufficient.
+Test whether the [published DaemonSet](https://github.com/Azure/AKS/issues/5743#issuecomment-6265013208) restores readahead after a disk attach or detach on Azure Linux FIPS. The runner uses one disposable node and two Premium SSD PVCs.
+
+## Deploy and test
+
+Sign in to Azure CLI for `AzureUSGovernment` and select an authorized test subscription. From this directory, use Bash with `az`, `kubectl`, `jq`, `curl`, and `shasum`. On Windows, use WSL with the tools installed there.
 
 ```bash
-az account show --query name -o tsv
-bash reproduce.sh
+AZ_CLOUD=AzureUSGovernment LOCATION=usgovvirginia \
+  VM_SIZE=Standard_D4ads_v6 OS_SKU=AzureLinux FIPS=true \
+  bash reproduce.sh disk
 ```
 
-The runner creates a disposable **Standard_D8as_v7 in West US 2** with a managed NVMe OS disk. It keeps one Premium SSD PVC mounted while attaching and detaching a second. It first seeds the original PVC to 128 KiB to expose an untreated reset. It then applies the exact posted DaemonSet, repeats three attach/detach cycles at different points in the 60-second polling interval, and replaces the DaemonSet pod once. It uses privileged pods on this dedicated node. [Issue #5743](https://github.com/Azure/AKS/issues/5743) · [Posted DaemonSet](https://github.com/Azure/AKS/issues/5743#issuecomment-6265013208)
+- Use `preflight` instead of `disk` to check regional SKU and AKS version availability without provisioning. The default patch is `1.36.5`; set `AKS_VERSION` to an offered patch if needed. Preflight cannot guarantee image availability, quota, or capacity.
+- Use `fingerprint` to boot the node and inspect its natural queues without writing them or deploying the DaemonSet. To add an Ubuntu FIPS comparison, set `CONTROL_POOLS="ubu:Standard_D4ads_v6:Ubuntu:true"` on the same command. The `Ubuntu` alias does not pin the release. A SCSI control (`scsi:Standard_D8ads_v5:AzureLinux:true`) can be added if the SKU is available in the subscription.
+- If GitHub is blocked, set `DAEMONSET_YAML=/path/to/posted.yaml` to the original manifest. The same pinned SHA-256 is required. `TARGET_RA_KB` defaults to `128`; the DaemonSet only lowers the value.
 
-### What to look for
+The disk test keeps the first PVC mounted while attaching and detaching the second. It compares untreated resets with three DaemonSet cycles and replaces the DaemonSet pod once. The privileged pods run only on the dedicated test nodes.
 
-The runner prints the original PVC's device and major:minor, its natural optimal I/O size in bytes, and its natural readahead in KiB. Follow **that same device** in the timestamped output as the second device appears and disappears. In the November 21, 2026 lab, the data device was `nvme0n2`.
+On exit, the runner deletes the tagged lab group, checks that **both resource groups report `exists: false`** in Azure Government, and restores the original CLI cloud. If interrupted before cleanup, use the printed group names in the same cloud and subscription to remove the tagged lab group and verify both. Do not switch clouds in another session sharing the CLI configuration during the run.
 
-| Observation | Result on the tested node |
+## How to read the result
+
+The printed output directory contains `fingerprint.json` (guest FIPS state, OS, kernel, and natural disk settings), `queues.log` (one sample per second), the DaemonSet logs, and `debug/run.log`. Follow the original PVC device in the queue log, not the disk being attached or detached.
+
+| Observation | Meaning |
 |---|---|
-| Fresh OS and data disks | 33,554,432-byte optimal I/O and 65,536 KiB readahead |
-| Attach or detach with the DaemonSet absent | Original PVC went from 128 back to 65,536 KiB |
-| Attach or detach with the DaemonSet running | Original PVC went from 128 to 65,536 and back to 128 KiB on all six events |
-| DaemonSet pod replaced while queues were high | New pod corrected the OS disk and both attached PVCs |
+| Managed NVMe `io_opt` is `33554432` bytes | `HOST_FIX_ABSENT`; expect 65,536 KiB on a kernel that applies twice the hint. |
+| Managed NVMe `io_opt` is `262144` bytes | `HOST_FIX_PRESENT`; expect 512 KiB on a kernel that applies twice the hint. |
+| Another managed NVMe hint | `OTHER`; inspect the recorded value. SCSI and local disks do not get this verdict. |
+| Ubuntu FIPS shows 128 KiB with a 32 MiB hint | The observed queue does not follow twice the hint. Record the kernel and check for guest overrides before attributing the difference to the kernel. |
 
-The runner saves one independent sample per second in `queues.log` and prints only changes. Subtract the first high timestamp from the next low timestamp to estimate exposure. The lab observed **7–52 seconds**. If samples go directly from 128 to 128 across an event, report “no reset observed.” If the natural default differs, report the value and node image you actually saw.
+The verdict applies only to the sampled disk, not the region. This test measures disk queues, not Elasticsearch performance.
 
-### Optional Elasticsearch comparison
+## Government results: November 23, 2026
 
-For the application test, run the following from this directory in the full repository.
+**The DaemonSet restored 128 KiB, but did not prevent resets.** On one `Standard_D4ads_v6` Azure Linux FIPS node in `usgovvirginia` (AKS `1.36.5`), the mounted PVC reset to 65,536 KiB after all six treated events. It returned to 128 KiB in **13.06 to 50.17 seconds**, measured from the first high sample to the next low sample. The replacement pod also corrected the queue. Both untreated events left it at 65,536 KiB.
 
-```bash
-bash reproduce.sh elasticsearch
-```
+A separate fingerprint run confirmed guest FIPS was enabled on both operating systems. Managed OS and data disks matched across the pools:
 
-This command provisions its own disposable node. It also needs Python 3.12+. It copies the benchmark inputs from the adjacent `aks-readahead-lab` directory, indexes two million public GeoNames records on a private Elasticsearch node, and repeats the same searches across three conditions.
+| Guest OS | Kernel | Managed NVMe hint | Natural readahead |
+|---|---|---:|---:|
+| Azure Linux 3.0 | `6.6.159.1-2.azl3` | 33,554,432 bytes | 65,536 KiB |
+| Ubuntu 22.04.5 LTS | `5.15.0-1125-azure-fips` | 33,554,432 bytes | 65,536 KiB |
 
-| Guest-cold search | Guest MiB read per query | Client p95 |
-|---|---:|---:|
-| JVM started at the natural 64 MiB setting | 4.153 | 5,604 ms |
-| DaemonSet corrected to 128 KiB, same JVM and open segment | 4.153 | 5,276 ms |
-| JVM restarted at 128 KiB | 0.377 | 22.9 ms |
+All four managed disks reported `HOST_FIX_ABSENT`. Both local temp disks reported 128 KiB. The Ubuntu 20.04/5.4 hypothesis was not tested, the SCSI SKU was restricted, and the host build was not visible from either guest. Both runs verified deletion of their lab and node resource groups.
 
-These are reference measurements from two repetitions. With the index fully resident, all three states issued zero guest reads. Inspect your run's `search/pooled.csv` for results, `search/benchmark.csv` for individual passes and sampled readahead, and `search/raw/bench-events.txt` for any deliberately simulated high baseline. [Full benchmark and limitations](../aks-readahead-lab/REPORT.md)
+## Commercial reference: November 21-22, 2026
 
-### Verified replay, November 22, 2026
+With no overrides, `bash reproduce.sh` still uses commercial Azure, West US 2, and one non-FIPS Ubuntu `Standard_D8as_v7` node. The original disk test observed six recoveries to 128 KiB and a successful pod replacement. On November 22, the six recoveries took 13.03 to 52.08 seconds.
 
-Both commands completed on fresh AKS clusters. The observer saw all six disk resets correct in 13.03–52.08 seconds, including a DaemonSet pod replacement. The Elasticsearch replay indexed 2,000,000 documents and completed 2,304 measured requests with zero errors or timeouts. Cold guest reads averaged 4.159 MiB/query before and after live correction, then 0.380 MiB/query after restart. Azure confirmed deletion of both clusters’ lab and node resource groups. [Disk-event timeline](../aks-readahead-lab/verification/disk/aks-5743.sWxSUb/observed-events.csv) · [Elasticsearch results](../aks-readahead-lab/verification/elasticsearch/aks-5743.nh6VB8/search/pooled.csv)
-
-### Debug output
-
-The startup line prints the local results directory. Follow `debug/run.log` there for timestamped stages and ingest progress. `search/raw/ingest.log` contains the full indexing output, including the document-count check. If an Elasticsearch API request receives an HTTP error, the client records its method, path, status and up to 4 KiB of the server response. A completed replay prints the pass count, sampled readahead check and request error count. Before cleanup, the runner also collects pod status, events and available server/client logs in `debug/`.
-
-To keep each run under a directory of your choice, use this command.
-
-```bash
-REPRO_OUTPUT_DIR="$HOME/aks-repro-runs" bash reproduce.sh elasticsearch
-```
-
-### Cleanup and version
-
-Both commands print the unique lab and node resource group names and the local results directory at startup. On exit the runner deletes the tagged lab group and checks that **both group names report `exists: false`**. If the shell is forcibly terminated, use the printed names in the same subscription to delete the lab group and verify both with `az group exists -n GROUP_NAME`.
-
-The default AKS patch is **1.36.5**, matching the original test. If West US 2 no longer offers it, use `az aks get-versions -l westus2 -o table` and pass an available patch as `AKS_VERSION=x.y.z bash reproduce.sh`. Include the substituted patch and printed node image when reporting results.
+The November 22 commercial Elasticsearch replay completed 2,304 measured requests with no errors or timeouts. Cold reads averaged 4.159 MiB/query before and after live correction, then 0.380 MiB/query after a JVM restart. No Elasticsearch run was performed in Azure Government.
